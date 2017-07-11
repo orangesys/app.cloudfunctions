@@ -6,7 +6,7 @@ app cloudfunctions with firebase
 ## Install
 
 ```
-npm install
+yarn
 ```
 
 ## Test
