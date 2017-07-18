@@ -103,7 +103,7 @@ jobs:
             firebase functions:config:set mail.to=$MAILJET_SENDER_ADDRESS --project "$FIREBASE_PROJECT" --token "$FIREBASE_FUNCTIONS_TOKEN"
             firebase functions:config:set webhook.stripe_invoice=$WEBHOOK_STRIPE_INVOICE --project "$FIREBASE_PROJECT" --token "$FIREBASE_FUNCTIONS_TOKEN"
             npm build
-            firebase deploy --project "$FIREBASE_PROJECT" --token "$FIREBASE_FUNCTIONS_TOKEN" --non-interactive
+            firebase deploy --only-function --project "$FIREBASE_PROJECT" --token "$FIREBASE_FUNCTIONS_TOKEN" --non-interactive
             curl -s -S -X POST --data-urlencode "payload={'channel': '#ops', 'text': ':earth_asia: :fire: release $CIRCLE_PROJECT_REPONAME (SHA1 $SHORT_HASH) completed (build $CIRCLE_BUILD_NUM)' }" $SLACK_OPS >/dev/null
 
 workflows:
