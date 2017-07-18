@@ -31,3 +31,32 @@ STRIPE_TEST_PLAN_ID=xxxxxx
 ```
 npm test
 ```
+
+## Deploy
+
+### Install firebase-tools
+
+```
+npm install -g firebase-tools
+```
+
+### Prepare .firebaserc
+
+```
+cp .firebaserc-sample .firebaserc
+```
+
+```
+# edit .firebaserc
+{
+  "projects": {
+    "default": "YOUR_PROJECT_NAME"
+  }
+}
+```
+
+### Deploy
+
+```
+npm run deploy
+```
