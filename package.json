@@ -9,7 +9,9 @@
     "check": "npm run lint && npm run flow",
     "test:unit": "mocha test/unit/",
     "test:integration": "env $(cat .env | xargs) mocha test/integration/",
-    "test": "npm run test:unit && npm run test:integration"
+    "test": "npm run test:unit && npm run test:integration",
+    "build": "rm -fr functions/* && babel src --out-dir functions && cp -f package.json functions/package.json && (cd functions/ && npm install --production --silent)",
+    "deploy": "npm run build && firebase deploy --only functions"
   },
   "author": "",
   "license": "ISC",
