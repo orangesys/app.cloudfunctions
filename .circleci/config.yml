@@ -22,7 +22,9 @@ references:
       name: load code from workspace
       command: |
         # Move all files and dotfiles to current directory
-        mv /tmp/workspace/app/* /tmp/workspace/app/.[!.]* .
+        if [ -d "/tmp/workspace/app" ]; then
+          mv /tmp/workspace/app/* /tmp/workspace/app/.[!.]* .
+        fi
 
   js_cache_key: &js_cache_key
     key: dependency-npm-{{ checksum "yarn.lock" }}
