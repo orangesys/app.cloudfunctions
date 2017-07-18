@@ -60,3 +60,4 @@ cp .firebaserc-sample .firebaserc
 ```
 npm run deploy
 ```
+
