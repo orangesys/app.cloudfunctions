@@ -8,6 +8,8 @@ import _cors from 'cors'
 import promisify from 'es6-promisify'
 import * as httpHandlers from './http-handlers'
 import * as dbHandlers from './db-handlers'
+import ServerSetup from './server-setup'
+import SERVER_SETUP_STATUS from './const/server-setup-status'
 
 admin.initializeApp(config().firebase)
 const cors = promisify(_cors())
@@ -52,3 +54,33 @@ export const sendInquiryNotification = database
   .onWrite(async event =>
     dbHandlers.sendInquiryNotification(event, admin, config)
   )
+
+export const requestServerSetup = database
+  .ref('/users/{uid}/serverSetup/status')
+  .onWrite(async (change, context) => {
+    const status = change.after.val()
+    if (status === SERVER_SETUP_STATUS.NOT_STARTED) {
+      const uid = context.params.uid
+      const retention = change.after.ref.parent.parent.child('retention')
+
+      const parentRef = change.after.ref.parent
+      let updates = {}
+      try {
+        await ServerSetup.requestSetupServer(uid, retention)
+        updates = {
+          status: SERVER_SETUP_STATUS.BUILDING,
+        }
+      } catch (error) {
+        const errorCode = 'creation_request_error'
+        const errorMessage = error.toString()
+        updates = {
+          status: SERVER_SETUP_STATUS.ERRORED,
+          errorCode,
+          errorMessage,
+        }
+      } finally {
+        console.log(updates)
+        parentRef.update(updates)
+      }
+    }
+  })
