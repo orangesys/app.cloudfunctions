@@ -1,9 +1,13 @@
 [![dependencies Status](https://david-dm.org/orangesys/app.cloudfunctions/status.svg)](https://david-dm.org/orangesys/app.cloudfunctions)
 [![CircleCI](https://circleci.com/gh/orangesys/app.cloudfunctions.svg?style=svg)](https://circleci.com/gh/orangesys/app.cloudfunctions)
+
 # app.cloudfunctions
 
 app cloudfunctions with firebase
 
+## Env
+
+node >= 10.10.0
 
 ## Install
 
@@ -58,5 +62,5 @@ cp .firebaserc-sample .firebaserc
 ### Deploy
 
 ```
-npm run deploy
+firebase deploy --token "$FIREBASE_TOKEN" --only functions
 ```
