@@ -1,5 +1,6 @@
 // @flow
 /* eslint-disable no-unused-vars */
+// FIXME: latest commit on May 22, 2016
 import 'isomorphic-fetch'
 
 export default class Slack {
@@ -19,7 +20,11 @@ export default class Slack {
     }
     const res = await this.fetch(this.webhookUrl, requestData)
     if (!res.ok) {
-      console.error(`status: ${res.status}, statusText: ${res.statusText} body: ${res.body ? res.body.toString() : ''}`)
+      console.error(
+        `status: ${res.status}, statusText: ${res.statusText} body: ${
+          res.body ? res.body.toString() : ''
+        }`
+      )
     }
     return res.ok
   }
