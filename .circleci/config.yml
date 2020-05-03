@@ -49,31 +49,51 @@ jobs:
   #           firebase deploy --only functions --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN" --non-interactive
   #           curl -s -S -X POST --data-urlencode "payload={'channel': '#ops', 'text': ':earth_asia: :fire: release $CIRCLE_PROJECT_REPONAME (SHA1 $SHORT_HASH) completed (build $CIRCLE_BUILD_NUM)' }" $SLACK_OPS >/dev/null
 
-  # deploy-to-dev:
-  #   <<: *container_config
-  #   steps:
-  #     - *attach_workspace
-  #     - *load_code
-  #     - run:
-  #         name: build with production
-  #         command: |
-  #           export PATH="$(npm bin):$PATH"
-  #           firebase -V
-  #           firebase functions:config:set stripe.secret_key=$STRIPE_SECRET_KEY --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-  #           firebase functions:config:set mail.mailjet_public_key=$MAILJET_PUBLIC_KEY --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-  #           firebase functions:config:set mail.mailjet_private_key=$MAILJET_PRIVATE_KEY --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-  #           firebase functions:config:set mail.from=$MAILJET_SENDER_ADDRESS --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-  #           firebase functions:config:set mail.to=$MAILJET_SENDER_ADDRESS --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-  #           firebase functions:config:set webhook.stripe_invoice=$WEBHOOK_STRIPE_INVOICE --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-  #           npm run build
-  #           firebase deploy --only functions --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN" --non-interactive
-  #           curl -s -S -X POST --data-urlencode "payload={'channel': '#ops', 'text': ':earth_asia: :fire: release $CIRCLE_PROJECT_REPONAME (SHA1 $SHORT_HASH) completed (build $CIRCLE_BUILD_NUM)' }" $SLACK_OPS >/dev/null
+  deploy-to-dev:
+    parameters:
+      executor:
+        description: The name of custom executor to use
+        type: executor
+        default: node
+    executor: <<parameters.executor>>
+    steps:
+      - cache-git/checkout-repo
+      - node/install-yarn
+      - node/install-packages:
+          cache-key: 'yarn.lock'
+          pkg-manager: 'yarn'
+      - run:
+          name: test 
+          command: |
+            echo $NODEJS_ENV_DEV | base64 --decode -i > .env
+            npm run build
+      - run:
+          name: build with production
+          command: |
+            export PATH="$(npm bin):$PATH"
+            firebase -V
+            firebase functions:config:set stripe.secret_key=$STRIPE_TEST_SECRET_KEY --project "$DEV_FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+            firebase functions:config:set mail.mailjet_public_key=$MAILJET_PUBLIC_KEY --project "$DEV_FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+            firebase functions:config:set mail.mailjet_private_key=$MAILJET_PRIVATE_KEY --project "$DEV_FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+            firebase functions:config:set mail.from=$MAILJET_SENDER_ADDRESS --project "$DEV_FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+            firebase functions:config:set mail.to=$MAILJET_SENDER_ADDRESS --project "$DEV_FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+            firebase functions:config:set webhook.stripe_invoice=$WEBHOOK_STRIPE_INVOICE --project "$DEV_FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+            npm run build
+            firebase deploy --only functions --project "$DEV_FIREBASE_PROJECT" --token "$FIREBASE_TOKEN" --non-interactive
+            curl -s -S -X POST --data-urlencode "payload={'channel': '#ops', 'text': ':earth_asia: :fire: release $CIRCLE_PROJECT_REPONAME (SHA1 $SHORT_HASH) completed (build $CIRCLE_BUILD_NUM)' }" $SLACK_OPS >/dev/null
 
 workflows:
   version: 2
   build-and-deploy:
     jobs:
       - test
+      - deploy-to-dev:
+          requires:
+            - test
+          filters:
+            branches:
+              only: 
+               - deploy-dev
       # - deploy:
       #     requires:
       #       - build_test
