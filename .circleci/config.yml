@@ -1,120 +1,83 @@
-version: 2.0
+version: 2.1
 
-references:
-  container_config: &container_config
+orbs:
+  node: circleci/node@2.0.3
+  cache-git: wink/git@1.0.0
+
+executors:
+  node:
     docker:
-      - image: node:6.10.0
-        environment:
-          PROJECT_NAME: orangesys
-          CLOUDSDK_COMPUTE_ZONE: asia-east1-c
-          CLUSTER_NAME: orangesysio
-    working_directory: ~/app
+      - image: circleci/node:12
 
-  workspace_root: &workspace_root /tmp/workspace
-
-  attach_workspace: &attach_workspace
-    attach_workspace:
-      at: *workspace_root
-
-  load_code: &load_code
-    run:
-      name: load code from workspace
-      command: |
-        # Move all files and dotfiles to current directory
-        if [ -d "/tmp/workspace/app" ]; then
-          mv /tmp/workspace/app/* /tmp/workspace/app/.[!.]* .
-        fi
-
-  js_cache_key: &js_cache_key
-    key: dependency-npm-{{ checksum "yarn.lock" }}
 
 jobs:
-  build_test:
-    <<: *container_config
+  test:
+    parameters:
+      executor:
+        description: The name of custom executor to use
+        type: executor
+        default: node
+    executor: <<parameters.executor>>
     steps:
-      - checkout
-      - restore_cache:
-          <<: *js_cache_key
+      - node/install-yarn
+      - node/install-packages:
+          cache-key: 'yarn.lock'
+          pkg-manager: 'yarn'
       - run:
-          name: download dependencies
-          command: |
-            if [ ! -d node_modules ]; then
-              set -exu
-              yarn
-            fi
-      - save_cache:
-          <<: *js_cache_key
-          paths:
-            - node_modules
-      - run:
-          name: Install libelf1 to container with flow-bin 0.41.0
-          command: |
-            apt-get update -y && \
-            apt-get install -y ocaml libelf1
-      - run:
-          name: test app.orangesys.io
+          name: test 
           command: |
             echo $NODEJS_ENV_DEV | base64 --decode -i > .env
-            npm test
-      - run:
-          name: Move app to workspace
-          command: |
-            mkdir -p /tmp/workspace/app/
-            mv * .[!.]* /tmp/workspace/app/
-      - persist_to_workspace:
-          root: *workspace_root
-          paths:
-            - app
+            yarn test
 
-  deploy:
-    <<: *container_config
-    steps:
-      - *attach_workspace
-      - *load_code
-      - run:
-          name: build with production
-          command: |
-            export PATH="$(npm bin):$PATH"
-            firebase -V
-            firebase functions:config:set stripe.secret_key=$STRIPE_SECRET_KEY --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-            firebase functions:config:set mail.mailjet_public_key=$MAILJET_PUBLIC_KEY --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-            firebase functions:config:set mail.mailjet_private_key=$MAILJET_PRIVATE_KEY --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-            firebase functions:config:set mail.from=$MAILJET_SENDER_ADDRESS --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-            firebase functions:config:set mail.to=$MAILJET_SENDER_ADDRESS --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-            firebase functions:config:set webhook.stripe_invoice=$WEBHOOK_STRIPE_INVOICE --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-            npm run build
-            firebase deploy --only functions --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN" --non-interactive
-            curl -s -S -X POST --data-urlencode "payload={'channel': '#ops', 'text': ':earth_asia: :fire: release $CIRCLE_PROJECT_REPONAME (SHA1 $SHORT_HASH) completed (build $CIRCLE_BUILD_NUM)' }" $SLACK_OPS >/dev/null
+  # deploy:
+  #   <<: *container_config
+  #   steps:
+  #     - *attach_workspace
+  #     - *load_code
+  #     - run:
+  #         name: build with production
+  #         command: |
+  #           export PATH="$(npm bin):$PATH"
+  #           firebase -V
+  #           firebase functions:config:set stripe.secret_key=$STRIPE_SECRET_KEY --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+  #           firebase functions:config:set mail.mailjet_public_key=$MAILJET_PUBLIC_KEY --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+  #           firebase functions:config:set mail.mailjet_private_key=$MAILJET_PRIVATE_KEY --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+  #           firebase functions:config:set mail.from=$MAILJET_SENDER_ADDRESS --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+  #           firebase functions:config:set mail.to=$MAILJET_SENDER_ADDRESS --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+  #           firebase functions:config:set webhook.stripe_invoice=$WEBHOOK_STRIPE_INVOICE --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+  #           npm run build
+  #           firebase deploy --only functions --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN" --non-interactive
+  #           curl -s -S -X POST --data-urlencode "payload={'channel': '#ops', 'text': ':earth_asia: :fire: release $CIRCLE_PROJECT_REPONAME (SHA1 $SHORT_HASH) completed (build $CIRCLE_BUILD_NUM)' }" $SLACK_OPS >/dev/null
 
-  deploy-to-dev:
-    <<: *container_config
-    steps:
-      - *attach_workspace
-      - *load_code
-      - run:
-          name: build with production
-          command: |
-            export PATH="$(npm bin):$PATH"
-            firebase -V
-            firebase functions:config:set stripe.secret_key=$STRIPE_SECRET_KEY --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-            firebase functions:config:set mail.mailjet_public_key=$MAILJET_PUBLIC_KEY --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-            firebase functions:config:set mail.mailjet_private_key=$MAILJET_PRIVATE_KEY --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-            firebase functions:config:set mail.from=$MAILJET_SENDER_ADDRESS --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-            firebase functions:config:set mail.to=$MAILJET_SENDER_ADDRESS --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-            firebase functions:config:set webhook.stripe_invoice=$WEBHOOK_STRIPE_INVOICE --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
-            npm run build
-            firebase deploy --only functions --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN" --non-interactive
-            curl -s -S -X POST --data-urlencode "payload={'channel': '#ops', 'text': ':earth_asia: :fire: release $CIRCLE_PROJECT_REPONAME (SHA1 $SHORT_HASH) completed (build $CIRCLE_BUILD_NUM)' }" $SLACK_OPS >/dev/null
+  # deploy-to-dev:
+  #   <<: *container_config
+  #   steps:
+  #     - *attach_workspace
+  #     - *load_code
+  #     - run:
+  #         name: build with production
+  #         command: |
+  #           export PATH="$(npm bin):$PATH"
+  #           firebase -V
+  #           firebase functions:config:set stripe.secret_key=$STRIPE_SECRET_KEY --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+  #           firebase functions:config:set mail.mailjet_public_key=$MAILJET_PUBLIC_KEY --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+  #           firebase functions:config:set mail.mailjet_private_key=$MAILJET_PRIVATE_KEY --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+  #           firebase functions:config:set mail.from=$MAILJET_SENDER_ADDRESS --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+  #           firebase functions:config:set mail.to=$MAILJET_SENDER_ADDRESS --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+  #           firebase functions:config:set webhook.stripe_invoice=$WEBHOOK_STRIPE_INVOICE --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN"
+  #           npm run build
+  #           firebase deploy --only functions --project "$FIREBASE_PROJECT" --token "$FIREBASE_TOKEN" --non-interactive
+  #           curl -s -S -X POST --data-urlencode "payload={'channel': '#ops', 'text': ':earth_asia: :fire: release $CIRCLE_PROJECT_REPONAME (SHA1 $SHORT_HASH) completed (build $CIRCLE_BUILD_NUM)' }" $SLACK_OPS >/dev/null
 
 workflows:
   version: 2
   build-and-deploy:
     jobs:
-      - build_test
-      - deploy:
-          requires:
-            - build_test
-          filters:
-            branches:
-              only: release
+      - test
+      # - deploy:
+      #     requires:
+      #       - build_test
+      #     filters:
+      #       branches:
+      #         only: release
         
