@@ -26,7 +26,7 @@ jobs:
       - run:
           name: test 
           command: |
-            # echo $NODEJS_ENV_DEV | base64 --decode -i > .env
+            echo $NODEJS_ENV_DEV | base64 --decode -i > .env
             yarn test
 
   # deploy:
