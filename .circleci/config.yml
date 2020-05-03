@@ -7,8 +7,7 @@ orbs:
 executors:
   node:
     docker:
-      - image: circleci/node:12
-
+      - image: circleci/node:10
 
 jobs:
   test:
@@ -26,7 +25,7 @@ jobs:
       - run:
           name: test 
           command: |
-            echo $NODEJS_ENV_DEV | base64 --decode -i > .env
+            # echo $NODEJS_ENV_DEV | base64 --decode -i > .env
             yarn test
 
   # deploy:
