@@ -27,7 +27,7 @@ jobs:
           name: test 
           command: |
             echo $NODEJS_ENV_DEV | base64 --decode -i > .env
-            yarn test
+            npm test
 
   # deploy:
   #   <<: *container_config
