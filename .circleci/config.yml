@@ -18,6 +18,7 @@ jobs:
         default: node
     executor: <<parameters.executor>>
     steps:
+      - cache-git/checkout-repo
       - node/install-yarn
       - node/install-packages:
           cache-key: 'yarn.lock'
