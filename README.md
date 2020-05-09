@@ -8,7 +8,7 @@ app cloudfunctions with firebase
 ## Env
 
 ```
-node >= 10.10.0
+node = 10.10.0
 ```
 
 ## Install
@@ -26,16 +26,35 @@ cp .env-sample .env
 ```
 
 ```
-# edit .env
 STRIPE_TEST_SECRET_KEY=XXXXXXXXXXXXXXXXXXXXX
 STRIPE_TEST_CUSTOMER_ID=xxxxxxx
 STRIPE_TEST_PLAN_ID=xxxxxx
+```
+
+### run functions on local
+
+```
+cp .runtimeconfig.json-sample .runtimeconfig.json
+```
+
+```
+{
+  "stripe": {
+    "secret_key": "sk_test_xxxx"
+  }
+}
 ```
 
 ### Run test
 
 ```
 npm test
+```
+
+## Build
+
+```
+yarn build
 ```
 
 ## Deploy
