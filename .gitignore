@@ -60,4 +60,5 @@ typings/
 
 /functions
 /.firebaserc
+.runtimeconfig.json
 .history

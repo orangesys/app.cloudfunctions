@@ -1,0 +1,5 @@
+{
+  "stripe": {
+    "secret_key": "sk_test_xxxx"
+  }
+}
